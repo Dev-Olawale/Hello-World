@@ -1,32 +1,40 @@
 version: 2.1
-jobs: # we now have TWO jobs, so that a workflow can coordinate them!
-  print_hello: # This is our first job.
-    docker: # it uses the docker executor
-      - image: circleci/node:13.8.0 # specifically, a docker image with ruby 2.6.8
-#        auth:
-#          username: mydockerhub-user
-#          password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
-    # Steps are a list of commands to run inside the docker container above.
-    steps:
-#      - checkout # this pulls code down from GitHub
-      - run: echo "A first hello" # This prints "A first hello" to stdout.
-#      - run: sleep 25 # a command telling the job to "sleep" for 25 seconds.
-  print_world: # This is our second job.
-    docker: # it runs inside a docker image, the same as above.
-      - image: circleci/node:13.8.0
-#        auth:
-#          username: mydockerhub-user
-#          password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
-    steps:
-#      - checkout
-      - run: echo "A more familiar hi" # We run a similar echo command to above.
-#      - run: sleep 15 # and then sleep for 15 seconds.
-# Under the workflows: map, we can coordinate our two jobs, defined above.
-workflows:
-#  version: 2
-  Welcome: # this is the name of our workflow
-    jobs: # and here we list the jobs we are going to run.
-      - print_hello
-      - print_world:
-          requires:
-            - print_hello        
+
+jobs: # basic units of work in a run
+  build:
+    docker: # use the Docker executor
+      # CircleCI node images available at: https://hub.docker.com/r/circleci/node/
+      - image: cimg/node:17.2.0
+        auth:
+          username: mydockerhub-user
+          password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
+    steps: # steps that comprise the `build` job
+      - checkout # check out source code to working directory
+      # Run a step to setup an environment variable
+      # Redirect MY_ENV_VAR into $BASH_ENV
+      - run:
+          name: "Setup custom environment variables"
+          command: echo 'export MY_ENV_VAR="OLAWALE"' >> $BASH_ENV
+      - run: # print the name of the branch we're on
+          name: "What branch am I on?"
+          command: echo ${CIRCLE_BRANCH}
+      # Run another step, the same as above; note that you can
+      # invoke environment variable without curly braces.
+      - run:
+          name: "What branch am I on now?"
+          command: echo $CIRCLE_BRANCH
+      - run:
+          name: "What was my custom environment variable?"
+          command: echo ${MY_ENV_VAR}
+      - run:
+          name: "Print an env var stored in the Project"
+          command: echo ${PROJECT_ENV_VAR}
+      - run:
+          name: "Print an env var stored in a Context"
+          command: echo ${CONTEXT_ENV_VAR}
+
+workflows: # a single workflow with a single job called build
+  build:
+    jobs:
+      - build:
+          context: Testing-Env-Vars
